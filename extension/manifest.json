@@ -1,0 +1,9 @@
+{
+    "manifest_version": 3,
+    "name": "Sensitive Info Checker",
+    "version": "0.1",
+    "description": "Warns the user before accidentally sending sentiive information to AI chatbots>",
+    "action": {
+        "default_popup": "popup.html"
+    }
+}
