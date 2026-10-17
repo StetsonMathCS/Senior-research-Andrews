@@ -11,8 +11,15 @@ let lastText = null;   // skip rescanning when nothing changed
 
 // ---------- Page elements ----------
 
-const highlight = new Highlight();
-CSS.highlights.set("sensitive-info", highlight);
+const highlights = {
+  1: new Highlight(),
+  2: new Highlight(),
+  3: new Highlight(),
+};
+CSS.highlights.set("sic-p1", highlights[1]);
+CSS.highlights.set("sic-p2", highlights[2]);
+CSS.highlights.set("sic-p3", highlights[3]);
+
 
 const badge = document.createElement("button");
 badge.className = "sic-badge";
@@ -41,7 +48,9 @@ function check() {
   if (text === lastText) return;
   lastText = text;
 
-  highlight.clear();
+  highlights[1].clear();
+  highlights[2].clear();
+  highlights[3].clear();
   found = [];
   if (box) {
     const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
@@ -51,7 +60,7 @@ function check() {
         const range = new Range();
         range.setStart(node, item.start);
         range.setEnd(node, item.end);
-        highlight.add(range);
+        highlights[item.priority].add(range);
         found.push(item);
       }
     }

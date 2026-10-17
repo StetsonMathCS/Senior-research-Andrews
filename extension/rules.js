@@ -17,6 +17,7 @@ const rules = [
   {
     type: "card",
     label: "Credit card number",
+    priority: 1,
     pattern: /(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)/g,
     check: passesLuhn,
     mask: true,
@@ -24,27 +25,56 @@ const rules = [
   {
     type: "ssn",
     label: "Social Security number",
+    priority: 1,
     pattern: /(?<!\d)(?!000|666|9\d\d)\d{3}([- ])(?!00)\d{2}\1(?!0000)\d{4}(?!\d)/g,
     mask: true,
   },
   {
     type: "apikey",
     label: "API key or token",
+    priority: 1,
     pattern: /\b(?:sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36,}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[A-Za-z0-9-]{10,})/g,
     mask: true,
   },
   {
     type: "email",
     label: "Email address",
+    priority: 3,
     pattern: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
   },
   {
     type: "phone",
     label: "Phone number",
+    priority: 2,
     pattern: /(?<![\d+])(?:\+?1[-. ]?)?(?:\(\d{3}\)|\d{3})[-. ]?\d{3}[-. ]?\d{4}(?!\d)/g,
   },
+  {
+    type: "ip",
+    label: "IP Address",
+    priority: 2,
+    pattern: /(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?!\.?\d)/g,
+    check: validIP,
+  
+
+  },
+  {
+    type: "mac",
+    label: "MAC address",
+    priority: 2,
+    pattern: /(?<![0-9a-f:-])[0-9a-f]{2}([:-])(?:[0-9a-f]{2}\1){4}[0-9a-f]{2}(?![:-]?[0-9a-f])/gi,
+  },
+
 ];
 
+// Function to check for valid IP addresses
+function validIP(value){
+  const parts = value.split(".");
+  for (const part of parts) {
+    if (part.length > 1 && part[0] === "0") return false;
+    if (Number(part) > 255) return false;
+  }
+  return true;
+}
 // Luhn checksum for verifying cards
 function passesLuhn(value) {
   const digits = value.replace(/\D/g, "");
@@ -69,6 +99,7 @@ function scan(text) {
       all.push({
         type: rule.type,
         label: rule.label,
+        priority: rule.priority,
         mask: Boolean(rule.mask),
         value: match[0],
         start: match.index,

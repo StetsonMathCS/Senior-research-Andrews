@@ -1,5 +1,13 @@
-::highlight(sensitive-info) {
+::highlight(sic-p1) {
+  background-color: #ffb3b3;
+  color: black;
+}
+::highlight(sic-p2) {
   background-color: #ffda6a;
+  color: black;
+}
+::highlight(sic-p3) {
+  background-color: #b6d8ff;
   color: black;
 }
 
