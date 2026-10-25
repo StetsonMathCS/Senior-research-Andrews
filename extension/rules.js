@@ -63,6 +63,24 @@ const rules = [
     priority: 2,
     pattern: /(?<![0-9a-f:-])[0-9a-f]{2}([:-])(?:[0-9a-f]{2}\1){4}[0-9a-f]{2}(?![:-]?[0-9a-f])/gi,
   },
+  
+  // On hold: research better way to detect 6 digit codes without sending false positives
+  // {
+  //   type: "code",
+  //   label: "6 digit code",
+  //   priority: 2,
+  //   pattern: /(?<!\d)(?:\d{6,}|\d{3}[ -]\d{3})(?!\d)/g,
+  // },
+  // Kept last so the more specific rules above win when they match the same text
+
+  {
+    type: "password",
+    label: "Possible password",
+    priority: 1,
+    pattern: /(?<!\S)\S{7,63}[^\s.,;](?=[.,;]*(?!\S))/g,
+    check: looksLikePassword,
+    mask: true,
+  },
 
 ];
 
@@ -75,6 +93,41 @@ function validIP(value){
   }
   return true;
 }
+
+// Words that mean a password is probably coming up
+const passwordWords = [
+  // full words
+  "passwords?", "passcodes?", "passphrases?",          
+  // short forms
+  "passwd", "passwrd", "pword", "pswd", "psw", "pwd", "pw", 
+].join("|");
+const passwordKeyword = new RegExp(`^(?:${passwordWords})\\W*$`, "i");
+const joinedPassword = new RegExp(`^(?:${passwordWords})[:=](.+)`, "i");
+
+//Counts types of characers (uppercase, lower, num) Returns 0-4
+function charKinds(value) {
+  let kinds = 0;
+  if (/[A-Z]/.test(value)) kinds++;
+  if (/[a-z]/.test(value)) kinds++;
+  if (/\d/.test(value)) kinds++;
+  if (/[^A-Za-z0-9]/.test(value)) kinds++;
+  return kinds;
+}
+
+
+// With a keyword in the 3 words before a suspected passsword, only two conditions need to be met
+// With no keyword it needs all 4 conditions
+function looksLikePassword(value, text, start) {
+  if (/@.+\.[A-Za-z]{2,}$/.test(value) || /^(?:https?:\/\/|www\.)/i.test(value)) return false;
+
+  const joined = value.match(joinedPassword);
+  if (joined) return charKinds(joined[1]) >= 2;
+
+  const before = text.slice(Math.max(0, start - 80), start).split(/\s+/).filter((word) => /[A-Za-z0-9]/.test(word)).slice(-3);
+  const hasKeyword = before.some((word) => passwordKeyword.test(word));
+  return charKinds(value) >= (hasKeyword ? 2 : 4);
+}
+
 // Luhn checksum for verifying cards
 function passesLuhn(value) {
   const digits = value.replace(/\D/g, "");
@@ -91,11 +144,13 @@ function passesLuhn(value) {
 }
 
 // Runs every rule over the text and returns what was found, in text order
-function scan(text) {
+// disabled is a list of rule types to skip, such as ssn or mac
+function scan(text, disabled = []) {
   const all = [];
   for (const rule of rules) {
+    if (disabled.includes(rule.type)) continue;
     for (const match of text.matchAll(rule.pattern)) {
-      if (rule.check && !rule.check(match[0])) continue;
+      if (rule.check && !rule.check(match[0], text, match.index)) continue;
       all.push({
         type: rule.type,
         label: rule.label,

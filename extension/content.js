@@ -1,13 +1,14 @@
-// Runs on any AI chat page. Uses scan() from rules.js, which loads first
+// Runs on Claude, Chat GPT, Grok, Gemini. Uses scan() from rules.js, which loads first
 
 
 // While typing, sensitive text is highlighted and a small badge shows a count
 // Clicking the badge opens a list of what was found
 
-const BOX_SELECTOR = '#prompt-textarea, .ProseMirror[contenteditable="true"]';
+const BOX_SELECTOR = '#prompt-textarea, .ProseMirror[contenteditable="true"], .ql-editor[contenteditable="true"]';
 
 let found = [];        // what the last scan found
 let lastText = null;   // skip rescanning when nothing changed
+let disabled = [];     // rule types turned off in the popup
 
 // ---------- Page elements ----------
 
@@ -56,7 +57,7 @@ function check() {
     const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const node = walker.currentNode;
-      for (const item of scan(node.textContent)) {
+      for (const item of scan(node.textContent, disabled)) {
         const range = new Range();
         range.setStart(node, item.start);
         range.setEnd(node, item.end);
@@ -95,4 +96,14 @@ function fillPanel() {
 document.addEventListener("input", check, true);
 // Catches changes that don't fire "input", like a paste from clipboard
 setInterval(check, 1000);
-check();
+
+chrome.storage.sync.get({ disabled: [] }, (saved) => {
+  disabled = saved.disabled;
+  check();
+});
+chrome.storage.onChanged.addListener((changes) => {
+  if (!changes.disabled) return;
+  disabled = changes.disabled.newValue || [];
+  lastText = null;
+  check();
+});
